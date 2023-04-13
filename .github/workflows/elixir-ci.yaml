@@ -1,0 +1,92 @@
+name: elixir-ci
+
+on:
+    push:
+        paths:
+            - .github/workflows/elixir-ci.yaml
+            - elixir/**
+
+jobs:
+    check-commit:
+        name: Check
+
+        uses: hxpm/gha/.github/workflows/check-commit.yaml@main
+
+    release-docker-image:
+        name: Release Docker Image
+
+        needs:
+            - check-commit
+
+        permissions:
+            contents: read
+
+            packages: write
+
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+
+            - uses: docker/login-action@v2
+
+              with:
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+                  registry: ghcr.io
+
+                  username: ${{ github.actor }}
+
+            - uses: sigstore/cosign-installer@v3.0.2
+
+            - id: build-docker-image
+
+              name: Build image
+
+              run: |
+                  image="ghcr.io/${{ github.repository_owner }}/elixir"
+
+                  buildTag="$image:latest"
+
+                  docker build -f elixir/Dockerfile -t $buildTag .
+
+                  version=$(docker run $buildTag elixir -e "IO.puts(System.version())" | sed -e "s/\r//g")
+
+                  tag="$image:$version"
+
+                  docker tag $buildTag $tag
+
+                  echo "tag=$tag" >> $GITHUB_OUTPUT
+
+            - id: publish-docker-image
+
+              if: github.ref == 'refs/heads/main'
+
+              name: Publish image to GitHub Container Registry
+
+              run: |
+                  tag="${{ steps.build-docker-image.outputs.tag }}"
+
+                  docker push $tag
+
+                  digest=$(docker inspect --format='{{index .RepoDigests 0}}' $tag)
+
+                  echo "digest=$digest" >> $GITHUB_OUTPUT
+
+            - env:
+                  COSIGN_PASSWORD: ${{ secrets.ELIXIR_COSIGN_PASSWORD }}
+
+                  COSIGN_PRIVATE_KEY: ${{ secrets.ELIXIR_COSIGN_PRIVATE_KEY }}
+
+              if: github.ref == 'refs/heads/main'
+
+              name: Sign image
+
+              run: |
+                  digest="${{ steps.publish-docker-image.outputs.digest }}"
+
+                  echo "$COSIGN_PRIVATE_KEY" > cosign.key
+
+                  cosign sign -y --key ./cosign.key $digest
+
+                  rm -f ./cosign.key
