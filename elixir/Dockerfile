@@ -4,7 +4,9 @@ RUN set -eux \
     \
     && apk upgrade \
     \
-    && apk add --no-cache build-base=0.5-r3 \
+    && apk add --no-cache \
+         build-base=0.5-r3 \
+         nodejs-current=20.2.0-r0 \
     \
     && mix local.hex --force \
     \
