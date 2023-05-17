@@ -6,6 +6,7 @@ RUN set -eux \
     \
     && apk add --no-cache \
          build-base=0.5-r3 \
+         inotify-tools=3.22.6.0-r2 \
          nodejs-current=20.2.0-r0 \
          npm=9.6.6-r0 \
     \
