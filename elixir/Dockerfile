@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.15.5-erlang-26.0.2-alpine-3.18.2
+FROM hexpm/elixir:1.15.6-erlang-26.0.2-alpine-3.18.2
 
 RUN set -eux \
     \
