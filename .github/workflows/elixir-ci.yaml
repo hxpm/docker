@@ -37,7 +37,7 @@ jobs:
 
                   username: ${{ github.actor }}
 
-            - uses: sigstore/cosign-installer@v3.1.2
+            - uses: sigstore/cosign-installer@v3.7.0
 
             - id: build-docker-image
 
